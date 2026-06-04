@@ -9,7 +9,7 @@
     - Items Tab: Grid layout (4 per row) - Decorations, Potions, Dice, Lockers (scrollable)
     - Cars Tab: Grid layout (4 per row) - Sorted by rarity (Common → SPEC) (scrollable)
     - Lockers Tab: List layout - Each locker shows rarity, time remaining, [OPEN] button (scrollable)
-    - Index Tab: View-only list of all cars in game (scrollable)
+    - Index Tab: View-only list of ALL cars (locked cars black with lock icon, owned cars colored)
 ]]
 
 local InventoryUI = {}
@@ -285,7 +285,7 @@ function InventoryUI:ShowInventory(playerId, PlayerDataManager, InventoryManager
             incomeLabel.TextColor3 = car.owned and UI_COLORS.ACCENT_GREEN or Color3.fromRGB(100, 100, 100)
             incomeLabel.TextSize = 9
             incomeLabel.Font = Enum.Font.Gotham
-            incomeLabel.Parent = carFrame
+            incomeLabel.Parent = incomeLabel
         end
         
         -- Update grid layout
@@ -337,7 +337,7 @@ function InventoryUI:ShowInventory(playerId, PlayerDataManager, InventoryManager
             timeLabel.TextColor3 = locker.unopened and Color3.fromRGB(200, 200, 200) or UI_COLORS.ACCENT_GREEN
             timeLabel.TextSize = 12
             timeLabel.Font = Enum.Font.Gotham
-            timeLabel.Parent = timeLabel
+            timeLabel.Parent = lockerFrame
             
             -- Open button (if ready)
             if not locker.unopened then
@@ -374,12 +374,21 @@ function InventoryUI:ShowInventory(playerId, PlayerDataManager, InventoryManager
         -- Get all cars from database
         local allCars = ItemDatabase.CARS or {}
         
-        -- Add all cars to grid (view only)
+        -- Get owned car IDs for quick lookup
+        local playerInventory = InventoryManager:GetInventory(playerId)
+        local ownedCarIds = {}
+        for _, car in ipairs(playerInventory.cars or {}) do
+            ownedCarIds[car.id] = true
+        end
+        
+        -- GAME_ARCHITECTURE: "Owned cars: Colored + Income value, Locked cars: Black + Lock icon + ??? income, No name"
         for _, car in ipairs(allCars) do
+            local isOwned = ownedCarIds[car.id] or false
+            
             local carFrame = Instance.new("Frame")
             carFrame.Name = car.id
             carFrame.Size = UDim2.new(0, 180, 0, 90)
-            carFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 70)
+            carFrame.BackgroundColor3 = isOwned and Color3.fromRGB(60, 80, 60) or Color3.fromRGB(30, 30, 30)  -- Green if owned, black if locked
             carFrame.BorderSizePixel = 1
             carFrame.BorderColor3 = Color3.fromRGB(100, 100, 150)
             carFrame.Parent = scrollingFrame
@@ -388,31 +397,31 @@ function InventoryUI:ShowInventory(playerId, PlayerDataManager, InventoryManager
             local carImage = Instance.new("TextLabel")
             carImage.Size = UDim2.new(1, 0, 0.6, 0)
             carImage.Position = UDim2.new(0, 0, 0, 0)
-            carImage.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+            carImage.BackgroundColor3 = isOwned and Color3.fromRGB(80, 120, 80) or Color3.fromRGB(20, 20, 20)  -- Colored if owned, black if locked
             carImage.BorderSizePixel = 0
-            carImage.Text = "🚗"
+            carImage.Text = isOwned and "🚗" or "🔒"  -- Lock icon if not owned
             carImage.TextSize = 32
             carImage.Parent = carFrame
             
-            -- Car name
+            -- Car name (HIDDEN if locked - show "???" instead)
             local carNameLabel = Instance.new("TextLabel")
             carNameLabel.Size = UDim2.new(0.6, 0, 0.4, 0)
             carNameLabel.Position = UDim2.new(0, 0, 0.6, 0)
             carNameLabel.BackgroundTransparency = 1
-            carNameLabel.Text = car.name
-            carNameLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            carNameLabel.Text = isOwned and car.name or "???"  -- Show name if owned, ??? if locked
+            carNameLabel.TextColor3 = isOwned and UI_COLORS.ACCENT_GREEN or Color3.fromRGB(80, 80, 80)  -- Gray if locked
             carNameLabel.TextSize = 10
             carNameLabel.Font = Enum.Font.Gotham
             carNameLabel.TextWrapped = true
             carNameLabel.Parent = carFrame
             
-            -- Income
+            -- Income (HIDDEN if locked - show "???" instead)
             local incomeLabel = Instance.new("TextLabel")
             incomeLabel.Size = UDim2.new(0.4, 0, 0.4, 0)
             incomeLabel.Position = UDim2.new(0.6, 0, 0.6, 0)
             incomeLabel.BackgroundTransparency = 1
-            incomeLabel.Text = "$" .. car.income
-            incomeLabel.TextColor3 = UI_COLORS.ACCENT_GREEN
+            incomeLabel.Text = isOwned and ("$" .. car.income) or "???"  -- Show income if owned, ??? if locked
+            incomeLabel.TextColor3 = isOwned and UI_COLORS.ACCENT_GREEN or Color3.fromRGB(80, 80, 80)
             incomeLabel.TextSize = 9
             incomeLabel.Font = Enum.Font.Gotham
             incomeLabel.Parent = carFrame
