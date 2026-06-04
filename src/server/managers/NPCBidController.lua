@@ -10,6 +10,8 @@
     - Timing: 1 second between bids (not simultaneous)
     - Stop condition: Random stop between 35-65%
     - BID INCREMENT USES 10% SYSTEM (same as player)
+    
+    FIXED: garageValue = CarPrice + (DecoCount * 20) - NO LOCKER BONUS (lockers are bonus, not in value calc)
 ]]
 
 local NPCBidController = {}
@@ -17,7 +19,8 @@ local Config = require(script.Parent:WaitForChild("Config"))
 
 --[[
     Calculate total garage value
-    GAME_ARCHITECTURE: "garageValue = CarPrice + (DecoCount * 20) + LockerBonus"
+    GAME_ARCHITECTURE: "garageValue = CarPrice + (DecoCount * 20)"
+    NOTE: Lockers are BONUS only, NOT calculated in garageValue
     
     @param garage: table - Garage data
     @return: number - Total value
@@ -32,10 +35,10 @@ function NPCBidController:CalculateGarageValue(garage)
         carPrice = (carData and carData.income * 15) or 100
     end
     
+    -- FIXED: Decorations value only (lockers are bonus, not in calculation)
     local decoValue = (garage.decorations and #garage.decorations or 0) * 20
-    local lockerBonus = (garage.locker and 150) or 0  -- Locker bonus value
     
-    return carPrice + decoValue + lockerBonus
+    return carPrice + decoValue
 end
 
 --[[
